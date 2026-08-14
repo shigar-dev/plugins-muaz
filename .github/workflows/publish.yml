@@ -67,7 +67,7 @@ jobs:
           umask 077
           printf '%s' "$MINISIGN_SECRET_KEY" | base64 -d > "$RUNNER_TEMP/minisign.key"
 
-      - name: Sign and release new versions
+      - name: Sign every archive and release new versions
         env:
           MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
         run: |
@@ -80,16 +80,31 @@ jobs:
             version=$(jq -r .version "$meta")
             zip=$(jq -r .output "$meta")
             tag="$id-v$version"
-            # A published version is immutable. Its archive and signature are
-            # already downloadable and recorded in the index by hash; replacing
-            # them would break every pin and every recorded checksum.
-            if gh release view "$tag" >/dev/null 2>&1; then
-              echo "$tag is already published — leaving it untouched"
-              continue
-            fi
+
+            # Sign before the tag check, not after it. The index build needs a
+            # signature for every version it has not indexed yet, and that is not
+            # the same set as "has no release": a run that died between `gh
+            # release create` and the index commit leaves a tag whose version
+            # never reached index.json. Gating the signature on the tag would
+            # then wedge every later run on "no .minisig — refusing to index it
+            # unsigned", pointing at the wrong cause and inviting someone to
+            # delete a release to escape.
+            #
+            # Re-signing a version that is already indexed is harmless:
+            # build-index.mjs keeps the published entry and never reads this
+            # file. And because packing is reproducible, a fresh signature over
+            # a re-packed archive covers bytes identical to the released ones.
             printf '%s' "$MINISIGN_PASSWORD" | minisign -S -s "$RUNNER_TEMP/minisign.key" -m "$zip"
             # Read the archive back the way a client will, before it ships.
             muaz plugins verify "$zip" --key publisher.pub
+
+            # A published version is immutable. Its archive is already
+            # downloadable and recorded in the index by hash; replacing it would
+            # break every pin and every recorded checksum.
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "$tag is already released — leaving the release untouched"
+              continue
+            fi
             gh release create "$tag" --title "$id v$version" \
               --notes "Published by the registry publish workflow." "$zip"
           done
