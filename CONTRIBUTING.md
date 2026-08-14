@@ -24,7 +24,9 @@ permissions:
 ```
 
 Alongside it, whatever the plugin provides: `agents/`, `skills/`, `pipelines/`,
-`prompts/`, `commands/`.
+`prompts/`, `commands/`. The
+[Plugins reference](https://shigar.dev/muaz/docs/concepts/plugins/) documents
+every manifest field, including the `config:` schema and `hooks:`.
 
 Check it locally before opening a PR:
 
