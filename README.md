@@ -62,15 +62,30 @@ Put these on the **environment**, not in repo-wide secrets. That is what makes
 merging a PR insufficient on its own to produce a signature — someone still has
 to approve the deployment.
 
-**2. Branch protection on `main`** — require a pull request.
+**2. Branch protection on `main`** — require a pull request, with **0** required
+approvals.
 
-A note for a solo maintainer: do **not** set "require approvals: 1" together
-with CODEOWNERS review, because GitHub will not let you approve your own pull
-request and you would be unable to merge anything. Require a PR with **0**
-approvals; CODEOWNERS still auto-requests your review on outside contributions,
-and the `publish` environment reviewer is the human gate that actually stops an
-unreviewed signature. Environment approvals *can* be self-approved, which is
-exactly why the gate belongs there.
+The workflow does not bypass this. It commits the rebuilt index to a
+`publish/index-<run-id>` branch, opens a pull request, and merges it — so the
+protection stays fully intact and every index change leaves a trail. Adding a
+GitHub Actions bypass instead would let *any* workflow on *any* branch push to
+`main`, which removes the review gate the protection exists for.
+
+Two settings have to line up with that:
+
+- **Settings → Actions → General → Workflow permissions**: enable *"Allow GitHub
+  Actions to create and approve pull requests"*. It is off by default, and
+  without it the workflow cannot open its own PR.
+- **Required approvals must be 0.** Anything higher deadlocks the index PR —
+  nobody can approve on the bot's behalf, and you cannot approve a PR you are
+  deemed the author of. `CODEOWNERS` deliberately leaves `index.json` unowned so
+  code-owner review, if you enable it, does not deadlock it either.
+
+That is not a weakened gate, because the gate is not here. CODEOWNERS still
+auto-requests your review on anything touching `plugins/**`, and the `publish`
+environment reviewer is what actually stops an unreviewed signature. Environment
+approvals *can* be self-approved, which is exactly why the gate belongs there
+and not in branch protection.
 
 **3. Bootstrap the index.** Run the workflow once (Actions → publish → Run
 workflow). It creates and signs `index.json` even with no plugins yet.
