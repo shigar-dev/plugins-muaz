@@ -1,0 +1,115 @@
+name: publish
+
+# Packs every plugin, publishes any version that is new, and rebuilds + signs
+# the index.
+#
+# The job is gated on the `publish` GitHub Environment, which must have required
+# reviewers: the signing key lives in that environment, so merging a PR is
+# deliberately not enough on its own to produce a signature. A signature proves
+# an artifact came from here — it does not say the plugin is safe. Review does
+# that, and the client still prompts before trusting a plugin's capabilities.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "plugins/**"
+      - "yanked.json"
+  workflow_dispatch:
+
+concurrency:
+  # The index carries a serial derived from the committed one. Two concurrent
+  # runs would read the same previous serial and race to push conflicting
+  # successors.
+  group: publish-index
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: publish
+    env:
+      # Must match the tag and asset names created below.
+      URL_TEMPLATE: https://github.com/${{ github.repository }}/releases/download/{id}-v{version}/{id}-{version}.zip
+      PUBLISHER_KEY_ID: ${{ vars.PUBLISHER_KEY_ID }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install muaz
+        run: |
+          curl -fsSL https://github.com/shigar-dev/releases-muaz/releases/latest/download/muaz-installer.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install minisign
+        run: sudo apt-get update && sudo apt-get install -y minisign
+
+      - name: Pack every plugin
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for dir in plugins/*/; do
+            [ -f "$dir/manifest.yaml" ] || continue
+            slug=$(basename "$dir")
+            # `-o dist/` keeps muaz's canonical <id>-<version>.zip name, so the
+            # asset name is known without parsing the manifest here.
+            muaz plugins pack "$dir" -o dist/ --json > "dist/$slug.json"
+          done
+
+      - name: Write the signing key
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$MINISIGN_SECRET_KEY" | base64 -d > "$RUNNER_TEMP/minisign.key"
+
+      - name: Sign and release new versions
+        env:
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for meta in dist/*.json; do
+            # An empty registry leaves the glob unexpanded; there is simply
+            # nothing to sign, and the index build below still runs.
+            [ -e "$meta" ] || continue
+            id=$(jq -r .id "$meta")
+            version=$(jq -r .version "$meta")
+            zip=$(jq -r .output "$meta")
+            tag="$id-v$version"
+            # A published version is immutable. Its archive and signature are
+            # already downloadable and recorded in the index by hash; replacing
+            # them would break every pin and every recorded checksum.
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "$tag is already published — leaving it untouched"
+              continue
+            fi
+            printf '%s' "$MINISIGN_PASSWORD" | minisign -S -s "$RUNNER_TEMP/minisign.key" -m "$zip"
+            # Read the archive back the way a client will, before it ships.
+            muaz plugins verify "$zip" --key publisher.pub
+            gh release create "$tag" --title "$id v$version" \
+              --notes "Published by the registry publish workflow." "$zip"
+          done
+
+      - name: Build the index
+        run: node scripts/build-index.mjs > index.json.new && mv index.json.new index.json
+
+      - name: Sign the index
+        env:
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          printf '%s' "$MINISIGN_PASSWORD" | minisign -S -s "$RUNNER_TEMP/minisign.key" -m index.json
+          shred -u "$RUNNER_TEMP/minisign.key"
+
+      - name: Commit the index
+        run: |
+          set -euo pipefail
+          git config user.name "registry-bot"
+          git config user.email "registry-bot@users.noreply.github.com"
+          git add index.json index.json.minisig
+          git diff --cached --quiet && { echo "index unchanged"; exit 0; }
+          git commit -m "publish: rebuild index"
+          git push

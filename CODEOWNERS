@@ -1,0 +1,4 @@
+# Everything here is security-relevant: CI signs whatever lands on main, and
+# that signature is what makes muaz install a plugin without warning the user.
+# no path is unowned.
+*  @0xAMC
