@@ -8,6 +8,14 @@ name: publish
 # deliberately not enough on its own to produce a signature. A signature proves
 # an artifact came from here — it does not say the plugin is safe. Review does
 # that, and the client still prompts before trusting a plugin's capabilities.
+#
+# The generated index is published to the `registry` branch, never to the branch
+# holding the sources. That keeps the branch people contribute to free to carry
+# real review requirements — required approvals, code-owner review — without CI
+# ever needing write access to it or a bypass around it. Nothing is lost by the
+# index living on an unreviewed branch: review cannot establish that an index is
+# authentic, only the signature can, and clients verify it over the raw bytes
+# before parsing them.
 
 on:
   push:
@@ -18,7 +26,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # The index carries a serial derived from the committed one. Two concurrent
+  # The index carries a serial derived from the published one. Two concurrent
   # runs would read the same previous serial and race to push conflicting
   # successors.
   group: publish-index
@@ -26,17 +34,16 @@ concurrency:
 
 permissions:
   contents: write
-  # The index lands through a pull request, because `main` requires one. Nothing
-  # here bypasses branch protection: adding an Actions bypass would let any
-  # workflow on any branch push to `main`, removing the review gate that
-  # protection exists for.
-  pull-requests: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     environment: publish
     env:
+      # Branch the generated index is served from. Protect it against force
+      # pushes and deletion, but do not require a pull request on it — CI is its
+      # only writer.
+      REGISTRY_BRANCH: registry
       # Must match the tag and asset names created below.
       URL_TEMPLATE: https://github.com/${{ github.repository }}/releases/download/{id}-v{version}/{id}-{version}.zip
       PUBLISHER_KEY_ID: ${{ vars.PUBLISHER_KEY_ID }}
@@ -44,6 +51,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # Before anything is signed or released. If the previously published index
+      # cannot be read, the run must stop here rather than after creating
+      # releases it would then fail to index.
+      - name: Fetch the published index
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$REGISTRY_BRANCH" >/dev/null; then
+            git fetch --depth=1 origin \
+              "+refs/heads/$REGISTRY_BRANCH:refs/remotes/origin/$REGISTRY_BRANCH"
+            # A branch that exists but carries no index is a broken state, not a
+            # first publish; let this fail.
+            git show "origin/$REGISTRY_BRANCH:index.json" > "$RUNNER_TEMP/previous-index.json"
+            echo "REGISTRY_BRANCH_EXISTS=1" >> "$GITHUB_ENV"
+          else
+            # `rc`, not `status`: the latter is read-only in zsh, which silently
+            # breaks anyone testing this step outside a runner.
+            rc=$?
+            # `--exit-code` reports 2 for "no matching ref", which is the genuine
+            # first publish. Any other status is a real failure — network, auth,
+            # wrong repo — and must never be read as "nothing published yet",
+            # because that would rebuild the index with serial 1 and lock out
+            # every client that has already recorded a higher one.
+            if [ "$rc" -ne 2 ]; then
+              echo "::error::Could not determine whether $REGISTRY_BRANCH exists (git ls-remote exited $rc)."
+              exit "$rc"
+            fi
+            echo "No $REGISTRY_BRANCH branch yet — this is the first publish."
+            echo "REGISTRY_BRANCH_EXISTS=0" >> "$GITHUB_ENV"
+          fi
 
       - name: Install muaz
         run: |
@@ -115,7 +152,14 @@ jobs:
           done
 
       - name: Build the index
-        run: node scripts/build-index.mjs > index.json.new && mv index.json.new index.json
+        run: |
+          set -euo pipefail
+          # On a first publish this path does not exist, which build-index.mjs
+          # reads as "nothing published yet". A previous index that exists but
+          # does not parse is fatal there, deliberately.
+          PREVIOUS_INDEX="$RUNNER_TEMP/previous-index.json" \
+            node scripts/build-index.mjs > index.json.new
+          mv index.json.new index.json
 
       - name: Sign the index
         env:
@@ -124,34 +168,45 @@ jobs:
           printf '%s' "$MINISIGN_PASSWORD" | minisign -S -s "$RUNNER_TEMP/minisign.key" -m index.json
           shred -u "$RUNNER_TEMP/minisign.key"
 
-      - name: Open and merge the index pull request
+      - name: Publish the index to the registry branch
         run: |
           set -euo pipefail
           git config user.name "registry-bot"
           git config user.email "registry-bot@users.noreply.github.com"
-          git add index.json index.json.minisig
-          git diff --cached --quiet && { echo "index unchanged"; exit 0; }
 
-          branch="publish/index-$GITHUB_RUN_ID"
-          git checkout -b "$branch"
-          git commit -m "publish: rebuild index"
-          git push origin "$branch"
-          gh pr create --base "$GITHUB_REF_NAME" --head "$branch" \
-            --title "publish: rebuild index" \
-            --body "Generated by the publish workflow, run $GITHUB_RUN_ID. The index is machine-generated and signed — its integrity comes from index.json.minisig, not from review. Merge as-is or re-run the workflow; never hand-edit it."
+          work="$RUNNER_TEMP/registry-branch"
+          if [ "$REGISTRY_BRANCH_EXISTS" = "1" ]; then
+            git worktree add "$work" -B "$REGISTRY_BRANCH" "origin/$REGISTRY_BRANCH"
+          else
+            # Orphan: the index shares no history with the sources, and the
+            # branch carries nothing but the two published files.
+            git worktree add --detach "$work"
+            git -C "$work" checkout --orphan "$REGISTRY_BRANCH"
+            # An orphan checkout inherits the source branch's index. Dropping it
+            # must not be allowed to fail quietly — that would publish the whole
+            # source tree onto the registry branch.
+            git -C "$work" rm -rqf .
+          fi
 
-          # GitHub computes mergeability asynchronously, so a merge attempted the
-          # instant the PR is created can be refused as "not mergeable" purely
-          # because it has not been checked yet.
-          for attempt in 1 2 3 4 5; do
-            if gh pr merge "$branch" --squash --delete-branch; then exit 0; fi
-            echo "merge attempt $attempt failed; retrying"
-            sleep 5
-          done
+          cp index.json index.json.minisig "$work/"
+          git -C "$work" add index.json index.json.minisig
 
-          # Leaving the PR open is safe: the next run reads whatever index.json is
-          # on the base branch, so it regenerates a superseding one rather than
-          # advancing past this one. Fail loudly so it is not missed.
-          echo "::error::Could not merge $branch. The archives are released but the" \
-               "index is not committed; merge the PR or re-run this workflow."
-          exit 1
+          # The branch is served directly to clients, so assert what is on it
+          # rather than trusting the steps above to have left it clean.
+          tracked=$(git -C "$work" ls-files)
+          expected=$(printf 'index.json\nindex.json.minisig')
+          if [ "$tracked" != "$expected" ]; then
+            echo "::error::$REGISTRY_BRANCH would contain unexpected files:"
+            echo "$tracked"
+            exit 1
+          fi
+
+          if git -C "$work" diff --cached --quiet; then
+            echo "index unchanged"
+            exit 0
+          fi
+          git -C "$work" commit -m "publish: rebuild index (run $GITHUB_RUN_ID)"
+          # A plain push, never --force: the branch history is the record of every
+          # index this registry has served, and a rejected non-fast-forward is a
+          # signal worth stopping on.
+          git -C "$work" push origin "HEAD:$REGISTRY_BRANCH"
