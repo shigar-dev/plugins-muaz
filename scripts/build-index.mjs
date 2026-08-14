@@ -64,8 +64,9 @@ const published = new Map(
   (previous.plugins ?? []).map((entry) => [ref(entry.name, entry.version), entry]),
 );
 
-for (const file of readdirSync(DIST).sort()) {
-  if (!file.endsWith(".json")) continue;
+const reports = existsSync(DIST) ? readdirSync(DIST).sort().filter((f) => f.endsWith(".json")) : [];
+
+for (const file of reports) {
   const meta = JSON.parse(readFileSync(join(DIST, file), "utf8"));
   const { id, name, version, description, sha256 } = meta;
   if (!id || !name || !version || !sha256) {
@@ -117,12 +118,17 @@ for (const file of readdirSync(DIST).sort()) {
 // An empty index is legitimate — a registry that exists but has published
 // nothing yet. Clients must still be able to fetch and verify it, because a
 // 404 reads as "this registry is broken/unreachable" rather than "it is empty".
-// What is *not* legitimate is dropping entries that were published before:
-// that means the dist/ glob broke, and emitting it would unpublish everything.
-if (published.size === 0 && (previous.plugins ?? []).length > 0) {
+//
+// Published entries can never be *dropped* here: `published` starts as the
+// previous index and this build only adds to it. What an empty dist/ does mean,
+// once anything has been published, is that the pack step produced nothing —
+// a broken glob, a failed install, a wrong working directory. The index it
+// would emit is harmless but the run that produced it is not, so stop.
+if (reports.length === 0 && (previous.plugins ?? []).length > 0) {
   die(
-    `${DIST}/ produced no plugins, but ${PREVIOUS} lists ` +
-      `${previous.plugins.length}. Refusing to unpublish them.`,
+    `${DIST}/ contains no pack reports, but ${PREVIOUS} lists ` +
+      `${previous.plugins.length} published version(s). The pack step produced ` +
+      `nothing — refusing to rebuild the index from an incomplete run.`,
   );
 }
 

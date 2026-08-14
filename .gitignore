@@ -1,6 +1,13 @@
 # Packed archives and pack metadata — built by CI, never committed.
 dist/
 
+# The index is generated and published to the `registry` branch. It is written
+# into the workspace during a run, but it must never be committed here: this
+# branch is reviewed source, and a hand-edited index committed alongside it
+# would be a second, unsigned answer to "what does this registry publish?".
+/index.json
+/index.json.minisig
+
 # Signing keys must never land in the repo. The secret key lives offline and in
 # the `publish` environment; only publisher.pub belongs here.
 *.key
