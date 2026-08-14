@@ -1,0 +1,27 @@
+manifest_version: 2
+name: auto-sde
+version: 0.0.1
+description: Coding agent for real engineering work — read, change, verify.
+author: muaz
+muaz: ">=0.3"
+
+# What this plugin asks for, shown verbatim at the trust prompt and pinned into
+# the capability digest muaz records when you trust it. A later version that
+# widens this list drops back to untrusted until you review it again.
+permissions:
+  # The `coding` agent's tool access is authored per-tool in agents/coding.yaml;
+  # these are the built-ins it relies on being available.
+  tools:
+    - read_file
+    - list_dir
+    - search
+    - edit_file
+    - write_file
+    - patch_file
+    - shell
+    - fetch_webpage
+    - web_search
+  # `fetch_webpage` / `web_search` reach the network. Both are `ask`.
+  network: true
+  # No MCP servers, no lifecycle hooks, no command-backed tools.
+  mcp: []
