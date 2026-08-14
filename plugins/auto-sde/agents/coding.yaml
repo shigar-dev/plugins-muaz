@@ -1,0 +1,113 @@
+# Coding-focused muaz agent, shipped by the `auto-sde` plugin.
+name: coding
+description: "An expert coding assistant"
+
+# This agent is provider-agnostic by design — no inline `provider:` block.
+# Its model is resolved from models.yaml: the global `default` profile (or a
+# per-agent entry under `agents:`). To give coding its own model, add an
+# `agents.coding` entry (profile + optional model) to models.yaml.
+
+# Prompt + SOP co-located with this agent inside the plugin. Paths are resolved
+# relative to this file, so they work wherever the plugin is installed.
+system_prompt: "./coding.md"
+
+# Step-by-step working procedure, appended to the system prompt under
+# "## Standard Operating Procedure".
+sop_file: "./coding-sop.md"
+
+# Agent Skills. Skills are opt-in by explicit selection: list the skills this
+# agent uses under `allow` and each is resolved across the local workspace,
+# installed plugins, and built-ins. A name that resolves to nothing warns on
+# load. Without this block (or with an empty list) the agent gets no skills,
+# even ones shipped in its own plugin. This plugin ships `verify-and-debug`.
+skills:
+  allow:
+    - verify-and-debug
+
+# Stream tokens to the terminal as they arrive
+streaming: true
+
+# Agentic loop limits
+max_iterations: 20         # coding tasks may need more tool-call rounds
+max_concurrent_tools: 4    # lower concurrency avoids conflicting file edits
+
+# LLM inference parameters (null = use model default)
+max_tokens: ~
+temperature: ~
+top_p: ~
+stop_sequences: ~
+
+# Compact conversation history when input tokens exceed this limit.
+compaction_token_threshold: 100000
+compaction_summary_prompt: |
+  Your task is to create a comprehensive summary of the coding conversation below.
+  This summary will replace the full conversation history so the work can continue
+  in a new context window. Be thorough and precise — omit nothing that a future
+  assistant would need to pick up exactly where this left off.
+
+  Produce the summary using exactly these numbered sections:
+
+  1. **Primary Request and Intent**
+     What the user originally asked for and the underlying goal. Include any
+     sub-goals or clarifications that emerged during the conversation.
+
+  2. **Key Technical Concepts**
+     Domain knowledge, architectural decisions, non-obvious constraints, and
+     terminology that informed the work.
+
+  3. **Files and Code Sections**
+     Every file that was read, created, or modified. For each file include:
+     the file path, what changed or was learned, and exact code snippets for
+     any non-trivial additions or edits.
+
+  4. **Errors and Fixes**
+     Every error, failure, or wrong turn encountered — and how it was resolved.
+     Include exact error messages where relevant.
+
+  5. **Problem Solving**
+     Design decisions, trade-offs evaluated, and the reasoning behind the
+     chosen approach for non-obvious choices.
+
+  6. **All User Messages**
+     A verbatim or near-verbatim list of every message the user sent, in order.
+
+  7. **Pending Tasks**
+     Work that was planned or started but not yet finished. Write "None" if
+     everything is complete.
+
+  8. **Current Work**
+     The exact state of work at the point this conversation ended — what was
+     last being worked on, what files were open, what the next concrete step is.
+
+  9. **Optional Next Step**
+     A single recommended next action the assistant should take when the
+     conversation resumes, if one is obvious from context.
+
+# Tool access for this agent (off | ask | auto per tool; most specific wins).
+tools:
+  built_in:
+    read_file: auto
+    list_dir: auto
+    search: auto
+    edit_file: ask
+    write_file: ask
+    patch_file: ask
+    fetch_webpage: ask
+    web_search: ask
+    shell:
+      level: ask
+      allow_when:
+        - "program=ls"
+        - "program=cat"
+        - "program=head"
+        - "program=tail"
+        - "program=grep"
+        - "program=rg"
+        - "program=find"
+        - "program=wc"
+        - "program=tree"
+        - "git status*"
+        - "git log*"
+        - "git diff*"
+        - "git show*"
+        - "git branch*"

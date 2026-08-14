@@ -1,6 +1,6 @@
 # plugins-muaz
 
-The official plugin registry for [muaz](https://github.com/shigar-dev/muaz).
+The official plugin registry for [muaz](https://shigar.dev/muaz/docs/).
 
 muaz reads `index.json` from this repository's **`registry`** branch and verifies
 it against the publisher key compiled into the binary. Every published plugin
@@ -26,7 +26,7 @@ your index with your key in `trusted_keys`. A registry that declares its own
 keys is trusted only for its own plugins, so your key gives you no standing
 anywhere else — and muaz's key gives it none in your registry.
 
-[Run an internal plugin registry](https://shigar-dev.github.io/muaz/docs/guides/internal-plugin-registry/)
+[Run an internal plugin registry](https://shigar.dev/muaz/docs/guides/internal-plugin-registry/)
 walks through it.
 
 ## Layout

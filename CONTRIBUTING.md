@@ -24,7 +24,9 @@ permissions:
 ```
 
 Alongside it, whatever the plugin provides: `agents/`, `skills/`, `pipelines/`,
-`prompts/`, `commands/`.
+`prompts/`, `commands/`. The
+[Plugins reference](https://shigar.dev/muaz/docs/concepts/plugins/) documents
+every manifest field, including the `config:` schema and `hooks:`.
 
 Check it locally before opening a PR:
 
@@ -40,9 +42,13 @@ index. It is reproducible, so the hash you see is the hash CI will publish.
 
 - **Bump the version for every change.** Published versions are immutable; the
   build fails if source changes without a version bump.
-- **Declare every permission you use.** `permissions:` is what the user is
-  shown before they trust the plugin, and undeclared access is refused at
-  runtime rather than silently granted.
+- **Declare every permission you use.** `permissions:` is what the user is shown
+  before they trust the plugin, and it is what muaz hashes into the capability
+  digest it pins at trust time — so a later version that widens it drops back to
+  untrusted until the user reviews the difference. It is a disclosure, not a
+  sandbox: nothing at runtime blocks a tool you failed to declare. That makes an
+  under-declared manifest a review failure rather than a caught error, and it is
+  the first thing a reviewer checks against your agents' `tools:` blocks.
 - **Lifecycle hooks get extra scrutiny.** `hooks:` runs arbitrary commands on
   a trusted install; expect to justify them.
 - **No secrets in the repo.** Anything the plugin needs at runtime belongs in
