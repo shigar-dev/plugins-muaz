@@ -1,6 +1,6 @@
 {
-  "serial": 3,
-  "published_at": "2026-08-17T22:12:56Z",
+  "serial": 4,
+  "published_at": "2026-08-17T22:57:37Z",
   "plugins": [
     {
       "name": "auto-sde",
@@ -19,6 +19,26 @@
       "sha256": "d9bf55f0377453f66f6ca405910a3873efc2c11cb81f95b7636dfe279dc94f6b",
       "minisign_sig": "untrusted comment: signature from minisign secret key\nRUQm1HWOafIs0noU/FsWtIb6cN70FREgqpx0Dz/p+LSb/oa/aDCaZpJqBuQghSJ2sIrQaiMDBF1VqPxL93BCLJWTYeZzdJE2tAI=\ntrusted comment: timestamp:1787004772\tfile:auto-sde-0.1.0.zip\thashed\nOjMvdMRlBhDAGVvssoxtt2Qllfud8fE89Lle0xq1DgGHvVDBUfz77ojlV9/V04lF67gR13dPcIihHrw/KzSfBQ==\n",
       "description": "Coding agent for real engineering work — read, change, verify.",
+      "muaz": ">=0.3",
+      "publisher_key_id": "D22CF2698E75D426"
+    },
+    {
+      "name": "research",
+      "version": "0.1.0",
+      "url": "https://github.com/shigar-dev/plugins-muaz/releases/download/research-v0.1.0/research-0.1.0.zip",
+      "sha256": "e57dc14eca95a437212f0d8b64b2309d9605901f6b82189be6e87b6e857a3472",
+      "minisign_sig": "untrusted comment: signature from minisign secret key\nRUQm1HWOafIs0nBym1nNPFUjMqB9m6ItK3g1Wo3WdShpe9RxTy/rbbOPmNu6YKU1wul8IcYZc6ndLpj/n7q34HkmQ/LP2UuT1AI=\ntrusted comment: timestamp:1787007452\tfile:research-0.1.0.zip\thashed\nBFlGGbJaeVR68Hppl2We8EIu/csypUoxeAMdtPf1CZ43L4FP1VpOgV4e96ijogHA0fNmdza3xsOGrBW4EOt9AA==\n",
+      "description": "Web research, and a pipeline that drafts from the sourced notes — every fact traceable to a URL.",
+      "muaz": ">=0.5",
+      "publisher_key_id": "D22CF2698E75D426"
+    },
+    {
+      "name": "writing",
+      "version": "0.1.0",
+      "url": "https://github.com/shigar-dev/plugins-muaz/releases/download/writing-v0.1.0/writing-0.1.0.zip",
+      "sha256": "783270f17f7d64208a737f224e5977a4f3a3a12cb600389de97fac7cd2681790",
+      "minisign_sig": "untrusted comment: signature from minisign secret key\nRUQm1HWOafIs0s8usfz2a/auhCTsr/b2LiHd9XKIKhXBeBEebogtyK7Szwfc8Cl4+G6HWaZRTEfqhxL2SfZeYCHc9XsaqQqH+A4=\ntrusted comment: timestamp:1787007455\tfile:writing-0.1.0.zip\thashed\nVCF05TCpbbSMZadqEL/VKDnKouGnyETw43BVHoBBgSyvevjx9X7JIKDjGmTJda1S4C3WDAT4uOe8JoWPn2GIBA==\n",
+      "description": "Refines writing you already have — emails, messages, docs. Reads your files, never the web.",
       "muaz": ">=0.3",
       "publisher_key_id": "D22CF2698E75D426"
     }
