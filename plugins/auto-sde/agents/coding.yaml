@@ -19,10 +19,18 @@ sop_file: "./coding-sop.md"
 # agent uses under `allow` and each is resolved across the local workspace,
 # installed plugins, and built-ins. A name that resolves to nothing warns on
 # load. Without this block (or with an empty list) the agent gets no skills,
-# even ones shipped in its own plugin. This plugin ships `verify-and-debug`.
+# even ones shipped in its own plugin.
+#
+# Four skills, one per phase where improvising is expensive. Only
+# `verify-and-debug` carries an `allowed-tools` grant; the other three are
+# guidance, so they widen nothing at the trust prompt and any git command that
+# changes state still goes through normal approval.
 skills:
   allow:
+    - plan-and-decompose
     - verify-and-debug
+    - review-changes
+    - git-workflow
 
 # Stream tokens to the terminal as they arrive
 streaming: true
