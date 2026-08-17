@@ -1,0 +1,27 @@
+# Drafting step of the `research-write` pipeline.
+#
+# `entrypoint: false` keeps it out of the new-chat picker — on its own it is a
+# prompt with no tools, which is a worse chat than your general-purpose agent.
+# Inside the pipeline it is doing a specific job with the researcher's notes in
+# front of it, which is a different thing entirely. If what you want is help
+# with writing *you* are doing, that is the `writing` plugin's `polish` agent,
+# not this.
+#
+# It is still a full agent: bind it to whichever model writes best for you in
+# models.yaml (`"@research/writer": { profile: … }`), independently of the model
+# doing the research.
+name: writer
+description: "Writing step: drafts the piece from the research notes and nothing else"
+entrypoint: false
+
+system_prompt: "./writer.md"
+streaming: false
+
+max_iterations: 1
+
+# No tools and no network. The draft comes from the notes it was handed — this
+# is enforced, not just instructed, so it cannot quietly go look something up
+# and present it alongside the checked facts.
+network: none
+tools:
+  default: off

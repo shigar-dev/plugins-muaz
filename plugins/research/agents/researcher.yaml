@@ -1,0 +1,23 @@
+# Web research: gather sourced notes for a writer to work from.
+#
+# Useful on its own ("research X and give me notes"), which is why it stays an
+# entrypoint while the writer and editor do not.
+name: researcher
+description: "Gathers sourced notes from the web — every fact carries its URL and date"
+
+system_prompt: "./researcher.md"
+streaming: true
+
+max_iterations: 12
+max_concurrent_tools: 6
+
+compaction_token_threshold: 60000
+
+# The two read-only web tools run automatically: they are SSRF-guarded by muaz
+# and cannot change anything. Everything else — including every file tool — is
+# off, so this agent reads the web and writes nothing anywhere.
+tools:
+  default: off
+  built_in:
+    web_search: auto
+    fetch_webpage: auto

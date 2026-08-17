@@ -1,0 +1,64 @@
+# Topic in, edited piece out: research the web for sourced notes, draft strictly
+# from those notes, then edit.
+#
+# The separation is the point. The researcher can reach the network and the
+# writer cannot, so every fact in the draft had to survive being written down
+# with a URL next to it first. A single agent doing both would blur checked facts
+# and recalled ones in the same paragraph, with nothing marking which was which.
+#
+# Each step is a separately bound agent — a cheap model can do the searching
+# while a stronger one drafts:
+#
+#   agents:
+#     "@research/researcher": { profile: openai-mini }
+#     "@research/writer":     { profile: anthropic-main }
+#     "@research/editor":     { profile: anthropic-main }
+#
+# Input: the brief. What to write, for whom, roughly how long.
+name: research-write
+description: "Research a topic on the web, draft from the sourced notes, then edit"
+
+budget:
+  max_seconds: 1500
+
+steps:
+  - name: research
+    agent: researcher
+    input: |
+      Research what this piece needs and produce notes for a writer.
+
+      Brief:
+      ${input}
+    retry: { max: 1, backoff_secs: 3 }
+    budget: { max_seconds: 600 }
+
+  - name: draft
+    agent: writer
+    input: |
+      Write the piece described in the brief, using only the research notes
+      below. Where the notes don't cover something the brief asks for, say so
+      rather than filling it in.
+
+      Brief:
+      ${input}
+
+      Research notes:
+      ${steps.research.output}
+    budget: { max_seconds: 400 }
+
+  - name: edit
+    agent: editor
+    input: |
+      Edit this draft: cut what isn't earned, fix the order, make vague claims
+      specific where the notes support it. Add no facts — the notes are all the
+      material there is.
+
+      Brief:
+      ${input}
+
+      Research notes:
+      ${steps.research.output}
+
+      Draft:
+      ${steps.draft.output}
+    budget: { max_seconds: 400 }
