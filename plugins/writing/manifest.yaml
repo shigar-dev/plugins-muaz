@@ -1,0 +1,25 @@
+manifest_version: 2
+name: writing
+version: 0.1.0
+description: Refines writing you already have — emails, messages, docs. Reads your files, never the web.
+author: muaz
+muaz: ">=0.3"
+
+# What this plugin asks for, shown verbatim at the trust prompt and pinned into
+# the capability digest muaz records when you trust it.
+permissions:
+  # File tools so it can work on a document in place ("tighten the intro of
+  # ~/notes/proposal.md") rather than only on text pasted into the chat. Writes
+  # are `ask` in the agent config — it never edits your file without approval.
+  tools:
+    - read_file
+    - list_dir
+    - search
+    - write_file
+    - edit_file
+  # Deliberately no network. This agent works on your words, and there is
+  # nothing it needs to look up to do that — so it is locked to `network: none`
+  # in its own config as well. Your unsent email never leaves the machine
+  # except to the model you chose.
+  network: false
+  mcp: []
