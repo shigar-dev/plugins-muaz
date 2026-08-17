@@ -1,0 +1,39 @@
+# Refines writing you already have: emails, messages, docs.
+#
+# An entrypoint agent, and the reason this plugin is separate from `research`:
+# the two jobs need different trust. Research reaches the web; this one never
+# does, so someone who just wants their emails tightened doesn't have to grant
+# network access to get it.
+name: polish
+description: "Refines your writing — emails, messages, docs. Keeps your voice, cuts the padding."
+
+system_prompt: "./polish.md"
+streaming: true
+
+# Short exchanges, occasionally reading a file first.
+max_iterations: 8
+max_concurrent_tools: 4
+
+max_tokens: ~
+temperature: ~
+top_p: ~
+stop_sequences: ~
+
+compaction_token_threshold: 60000
+
+# Hard local egress lock. There is nothing this agent needs to look up to edit
+# your words, and an unsent email is exactly the kind of text that should not be
+# one tool call away from leaving the machine.
+network: none
+
+# Reads freely so "tighten the intro of ~/notes/proposal.md" works; every write
+# asks first. The default is to hand the revision back in the chat and let you
+# paste it — your document stays yours unless you say otherwise.
+tools:
+  default: off
+  built_in:
+    read_file: auto
+    list_dir: auto
+    search: auto
+    write_file: ask
+    edit_file: ask
