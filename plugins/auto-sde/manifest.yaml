@@ -1,6 +1,6 @@
 manifest_version: 2
 name: auto-sde
-version: 0.0.1
+version: 0.1.0
 description: Coding agent for real engineering work — read, change, verify.
 author: muaz
 muaz: ">=0.3"
