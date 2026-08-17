@@ -1,6 +1,6 @@
 {
-  "serial": 2,
-  "published_at": "2026-08-14T23:43:40Z",
+  "serial": 3,
+  "published_at": "2026-08-17T22:12:56Z",
   "plugins": [
     {
       "name": "auto-sde",
@@ -8,6 +8,16 @@
       "url": "https://github.com/shigar-dev/plugins-muaz/releases/download/auto-sde-v0.0.1/auto-sde-0.0.1.zip",
       "sha256": "9c9bf1ec86e543f5780f4eec70a806f675f1dc953f8e64df255fd8fca21ba5f5",
       "minisign_sig": "untrusted comment: signature from minisign secret key\nRUQm1HWOafIs0mdMmsOA69sQF8tXwUV9pry6FtHCVHy8UMq7xKMHmNBG45OENqIjhIYoYguyUBE8OCCYRHx2BP1fX0vJB6khzgY=\ntrusted comment: timestamp:1786751018\tfile:auto-sde-0.0.1.zip\thashed\n/xY1BHUb08nfmwtZRNyrSPquWx4GbPQRmrvk1XJp2tlq28lslViLj4XsDVIhM27n/CNRYf68wPYiZRWprVBHCw==\n",
+      "description": "Coding agent for real engineering work — read, change, verify.",
+      "muaz": ">=0.3",
+      "publisher_key_id": "D22CF2698E75D426"
+    },
+    {
+      "name": "auto-sde",
+      "version": "0.1.0",
+      "url": "https://github.com/shigar-dev/plugins-muaz/releases/download/auto-sde-v0.1.0/auto-sde-0.1.0.zip",
+      "sha256": "d9bf55f0377453f66f6ca405910a3873efc2c11cb81f95b7636dfe279dc94f6b",
+      "minisign_sig": "untrusted comment: signature from minisign secret key\nRUQm1HWOafIs0noU/FsWtIb6cN70FREgqpx0Dz/p+LSb/oa/aDCaZpJqBuQghSJ2sIrQaiMDBF1VqPxL93BCLJWTYeZzdJE2tAI=\ntrusted comment: timestamp:1787004772\tfile:auto-sde-0.1.0.zip\thashed\nOjMvdMRlBhDAGVvssoxtt2Qllfud8fE89Lle0xq1DgGHvVDBUfz77ojlV9/V04lF67gR13dPcIihHrw/KzSfBQ==\n",
       "description": "Coding agent for real engineering work — read, change, verify.",
       "muaz": ">=0.3",
       "publisher_key_id": "D22CF2698E75D426"
