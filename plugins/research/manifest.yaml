@@ -1,0 +1,20 @@
+manifest_version: 2
+name: research
+version: 0.1.0
+description: Web research, and a pipeline that drafts from the sourced notes — every fact traceable to a URL.
+author: muaz
+# `entrypoint: false` on the step agents needs a muaz that understands the field.
+muaz: ">=0.5"
+
+# What this plugin asks for, shown verbatim at the trust prompt and pinned into
+# the capability digest muaz records when you trust it.
+permissions:
+  # Only the `researcher` agent has tools; `writer` and `editor` run with none
+  # and are locked to `network: none` in their own configs.
+  tools:
+    - web_search
+    - fetch_webpage
+  # `web_search` / `fetch_webpage` reach the network, both SSRF-guarded by muaz.
+  network: true
+  # No MCP servers, no lifecycle hooks, no command-backed tools.
+  mcp: []

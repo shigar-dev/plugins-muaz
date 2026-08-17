@@ -1,0 +1,23 @@
+# Editing step of the `research-write` pipeline: cuts, reorders, tightens.
+#
+# Worth binding to a different model than the writer — an editor that shares the
+# writer's instincts keeps the writer's tics.
+#
+# Not the same job as the `writing` plugin's `polish`: this one runs unattended
+# on a machine-written draft it has the source notes for, and returns edited text
+# with no commentary. `polish` is interactive, works on text *you* wrote, and
+# tells you what it changed so you can disagree.
+name: editor
+description: "Editing step: cuts what isn't earned, fixes the order, tightens the prose"
+entrypoint: false
+
+system_prompt: "./editor.md"
+streaming: false
+
+max_iterations: 1
+
+# Same lock as the writer: an editor that could look things up would start
+# introducing unsourced facts into a draft built from checked ones.
+network: none
+tools:
+  default: off
